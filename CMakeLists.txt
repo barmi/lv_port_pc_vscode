@@ -69,8 +69,13 @@ add_compile_definitions($<$<BOOL:${LV_USE_FFMPEG}>:LV_USE_FFMPEG=1>)
 add_subdirectory(lvgl)
 target_include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR} ${SDL2_INCLUDE_DIRS})
 
-set(MAIN_SOURCES src/mouse_cursor_icon.c src/hal/hal.c)
-set(MAIN_LIBS lvgl lvgl::examples lvgl::demos lvgl::thorvg ${SDL2_LIBRARIES})
+set(MAIN_SOURCES 
+    src/mouse_cursor_icon.c 
+    src/hal/hal.c 
+    arduino/DEMO_LVGL/ui.c
+)
+include_directories(arduino/DEMO_LVGL)
+set(MAIN_LIBS lvgl ${SDL2_LIBRARIES})
 
 # Create the main executable, depending on the FreeRTOS option
 if(USE_FREERTOS)
@@ -143,6 +148,7 @@ endif()
 
 add_executable(main ${MAIN_SOURCES})
 target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
+target_include_directories(main PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(main ${MAIN_LIBS})
 
 # On Windows, GUI applications do not show a console by default,

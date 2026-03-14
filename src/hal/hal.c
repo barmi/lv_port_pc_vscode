@@ -1,5 +1,10 @@
 #include "hal.h"
 
+// For LVGL 9.x SDL drivers
+lv_display_t * lv_sdl_window_create(int32_t hor_res, int32_t ver_res);
+lv_indev_t * lv_sdl_mouse_create(void);
+lv_indev_t * lv_sdl_mousewheel_create(void);
+lv_indev_t * lv_sdl_keyboard_create(void);
 
 lv_display_t * sdl_hal_init(int32_t w, int32_t h)
 {
@@ -12,11 +17,13 @@ lv_display_t * sdl_hal_init(int32_t w, int32_t h)
   lv_indev_set_group(mouse, lv_group_get_default());
   lv_indev_set_display(mouse, disp);
   lv_display_set_default(disp);
-  /*Declare the image file.*/
-  LV_IMAGE_DECLARE(mouse_cursor_icon); 
+  
   lv_obj_t * cursor_obj;
   /*Create an image object for the cursor */
   cursor_obj = lv_image_create(lv_screen_active()); 
+  
+  /*Declare the image file.*/
+  extern const lv_image_dsc_t mouse_cursor_icon;
   /*Set the image source*/
   lv_image_set_src(cursor_obj, &mouse_cursor_icon);           
   /*Connect the image  object to the driver*/
