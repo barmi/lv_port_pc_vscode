@@ -48,34 +48,38 @@ def crop_icons():
             w = right - left
             h = bottom - top
             
-            # 정사각형 영역의 4개의 꽉찬 영역을 찾으라고 했으므로
-            # 가장 긴 쪽을 기준으로 정사각형 한 변의 길이를 정함
-            size = max(w, h)
+            # 아이콘 내용물만 크롭
+            icon_content = sub_img.crop(bbox)
             
-            # 중심점을 기준으로 정사각형 영역 확장
-            # size만큼의 영역을 가지도록 좌/우/상/하로 확장
-            cx = (left + right) / 2
-            cy = (top + bottom) / 2
+            # 비율 유지하며 48x48 영역 내에 맞도록 리사이즈
+            # 가로/세로 중 긴 쪽이 48이 되도록 스케일링 비율 결정
+            scale = 48.0 / max(w, h)
+            new_w = int(w * scale)
+            new_h = int(h * scale)
             
-            # 정확한 정수 좌표로 변환 (중심 기준 정사각형)
-            # sub_img.crop()은 영역을 벗어나도 자동으로 투명하게 처리함
-            square_bbox = (
-                int(cx - size / 2),
-                int(cy - size / 2),
-                int(cx + size / 2),
-                int(cy + size / 2)
-            )
+            # 적어도 한 변은 48이 되도록 보장
+            if w > h:
+                new_w = 48
+            else:
+                new_h = 48
+                
+            resized_icon = icon_content.resize((new_w, new_h), Image.Resampling.LANCZOS)
             
-            # 3. 정사각형으로 다시 자름
-            final_crop = sub_img.crop(square_bbox)
+            # 3. 48*48 투명 배경 캔버스 생성 및 중앙 배치
+            final_img = Image.new("RGBA", (48, 48), (0, 0, 0, 0))
             
-            # 4. 최종적인 이미지 사이즈 48*48으로 축소
-            final_img = final_crop.resize((48, 48), Image.Resampling.LANCZOS)
+            # 중앙 위치 계산
+            offset_x = (48 - new_w) // 2
+            offset_y = (48 - new_h) // 2
             
-            # 5. 지정된 이름의 png 파일로 저장
+            # 아이콘을 중앙에 붙여넣기 (알파 채널 유지)
+            # RGBA 이미지를 붙일 때 마스크로 자신을 전달하여 알파를 보존함
+            final_img.paste(resized_icon, (offset_x, offset_y), resized_icon)
+            
+            # 4. 지정된 이름의 png 파일로 저장
             output_path = os.path.join(script_dir, filenames[i])
             final_img.save(output_path)
-            print(f"Generated: {output_path} (original content: {w}x{h}, square crop: {size}x{size})")
+            print(f"Generated: {output_path} (original content: {w}x{h}, resized to: {new_w}x{h} -> {new_w}x{new_h})")
         else:
             print(f"Skipping region {i} ({filenames[i]}): No visible content found.")
 
