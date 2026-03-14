@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "ui_img.h"
 #include <stdio.h>
 
 /* --- 전역 변수: 화면 객체들 --- */
@@ -83,7 +84,7 @@ static void build_main_screen() {
     lv_obj_align(welcome, LV_ALIGN_TOP_MID, 0, 20);
 
     int btn_w = 140;
-    int btn_h = 100;
+    int btn_h = 120; // [수정됨] 이미지 수용을 위해 높이 증가
     int gap_x = 30;
     int gap_y = 30;
     int start_y = 70;
@@ -95,10 +96,14 @@ static void build_main_screen() {
     lv_obj_align(btn1, LV_ALIGN_TOP_MID, -(btn_w/2 + gap_x/2), start_y);
     lv_obj_set_style_bg_color(btn1, lv_palette_main(LV_PALETTE_BLUE), 0);
     
-    lv_obj_t * ic1 = lv_label_create(btn1);
-    lv_label_set_text(ic1, LV_SYMBOL_SETTINGS "\nSettings");
-    lv_obj_set_style_text_align(ic1, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_center(ic1);
+    lv_obj_t * img1 = lv_img_create(btn1);
+    lv_img_set_src(img1, &img_settings_48);
+    lv_obj_align(img1, LV_ALIGN_TOP_MID, 0, 10);
+
+    lv_obj_t * lbl1 = lv_label_create(btn1);
+    lv_label_set_text(lbl1, "Settings");
+    lv_obj_align(lbl1, LV_ALIGN_BOTTOM_MID, 0, -10);
+    
     lv_obj_add_event_cb(btn1, nav_event_cb, LV_EVENT_CLICKED, scr_settings);
 
     // Btn 2: Wi-Fi
@@ -108,10 +113,14 @@ static void build_main_screen() {
     lv_obj_align(btn2, LV_ALIGN_TOP_MID, (btn_w/2 + gap_x/2), start_y);
     lv_obj_set_style_bg_color(btn2, lv_palette_main(LV_PALETTE_TEAL), 0);
 
-    lv_obj_t * ic2 = lv_label_create(btn2);
-    lv_label_set_text(ic2, LV_SYMBOL_WIFI "\nWi-Fi");
-    lv_obj_set_style_text_align(ic2, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_center(ic2);
+    lv_obj_t * img2 = lv_img_create(btn2);
+    lv_img_set_src(img2, &img_wifi_48);
+    lv_obj_align(img2, LV_ALIGN_TOP_MID, 0, 10);
+
+    lv_obj_t * lbl2 = lv_label_create(btn2);
+    lv_label_set_text(lbl2, "Wi-Fi");
+    lv_obj_align(lbl2, LV_ALIGN_BOTTOM_MID, 0, -10);
+    
     lv_obj_add_event_cb(btn2, nav_event_cb, LV_EVENT_CLICKED, scr_wifi);
 
     // Btn 3: Chart
@@ -121,10 +130,14 @@ static void build_main_screen() {
     lv_obj_align(btn3, LV_ALIGN_TOP_MID, -(btn_w/2 + gap_x/2), start_y + btn_h + gap_y);
     lv_obj_set_style_bg_color(btn3, lv_palette_main(LV_PALETTE_ORANGE), 0);
 
-    lv_obj_t * ic3 = lv_label_create(btn3);
-    lv_label_set_text(ic3, LV_SYMBOL_LOOP "\nMonitor");
-    lv_obj_set_style_text_align(ic3, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_center(ic3);
+    lv_obj_t * img3 = lv_img_create(btn3);
+    lv_img_set_src(img3, &img_monitor_48);
+    lv_obj_align(img3, LV_ALIGN_TOP_MID, 0, 10);
+
+    lv_obj_t * lbl3 = lv_label_create(btn3);
+    lv_label_set_text(lbl3, "Monitor");
+    lv_obj_align(lbl3, LV_ALIGN_BOTTOM_MID, 0, -10);
+
     lv_obj_add_event_cb(btn3, nav_event_cb, LV_EVENT_CLICKED, scr_chart);
 
     // Btn 4: Info
@@ -134,10 +147,14 @@ static void build_main_screen() {
     lv_obj_align(btn4, LV_ALIGN_TOP_MID, (btn_w/2 + gap_x/2), start_y + btn_h + gap_y);
     lv_obj_set_style_bg_color(btn4, lv_palette_main(LV_PALETTE_INDIGO), 0);
 
-    lv_obj_t * ic4 = lv_label_create(btn4);
-    lv_label_set_text(ic4, LV_SYMBOL_LIST "\nInfo");
-    lv_obj_set_style_text_align(ic4, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_center(ic4);
+    lv_obj_t * img4 = lv_img_create(btn4);
+    lv_img_set_src(img4, &img_info_48);
+    lv_obj_align(img4, LV_ALIGN_TOP_MID, 0, 10);
+
+    lv_obj_t * lbl4 = lv_label_create(btn4);
+    lv_label_set_text(lbl4, "Info");
+    lv_obj_align(lbl4, LV_ALIGN_BOTTOM_MID, 0, -10);
+
     lv_obj_add_event_cb(btn4, nav_event_cb, LV_EVENT_CLICKED, scr_info);
 }
 

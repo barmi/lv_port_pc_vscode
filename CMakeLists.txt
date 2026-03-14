@@ -66,15 +66,18 @@ add_compile_definitions($<$<BOOL:${LV_USE_LIBJPEG_TURBO}>:LV_USE_LIBJPEG_TURBO=1
 add_compile_definitions($<$<BOOL:${LV_USE_FFMPEG}>:LV_USE_FFMPEG=1>)
 
 # Add LVGL subdirectory
-add_subdirectory(lvgl)
-target_include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR} ${SDL2_INCLUDE_DIRS})
+add_subdirectory(arduino/DEMO_LVGL/libraries/lvgl)
+target_include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/arduino/DEMO_LVGL ${SDL2_INCLUDE_DIRS})
 
 set(MAIN_SOURCES 
     src/mouse_cursor_icon.c 
     src/hal/hal.c 
     arduino/DEMO_LVGL/ui.c
+    arduino/DEMO_LVGL/ui_img.c
 )
 include_directories(arduino/DEMO_LVGL)
+include_directories(arduino/DEMO_LVGL/libraries)
+include_directories(arduino/DEMO_LVGL/libraries/lvgl)
 set(MAIN_LIBS lvgl ${SDL2_LIBRARIES})
 
 # Create the main executable, depending on the FreeRTOS option
@@ -148,7 +151,7 @@ endif()
 
 add_executable(main ${MAIN_SOURCES})
 target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
-target_include_directories(main PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(main PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/arduino/DEMO_LVGL)
 target_link_libraries(main ${MAIN_LIBS})
 
 # On Windows, GUI applications do not show a console by default,
