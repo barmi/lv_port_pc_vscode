@@ -98,7 +98,7 @@ static void build_main_screen() {
     
     lv_obj_t * img1 = lv_img_create(btn1);
     lv_img_set_src(img1, &img_settings_48);
-    lv_obj_align(img1, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(img1, LV_ALIGN_TOP_MID, 0, 2);
 
     lv_obj_t * lbl1 = lv_label_create(btn1);
     lv_label_set_text(lbl1, "Settings");
@@ -115,7 +115,7 @@ static void build_main_screen() {
 
     lv_obj_t * img2 = lv_img_create(btn2);
     lv_img_set_src(img2, &img_wifi_48);
-    lv_obj_align(img2, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(img2, LV_ALIGN_TOP_MID, 0, 2);
 
     lv_obj_t * lbl2 = lv_label_create(btn2);
     lv_label_set_text(lbl2, "Wi-Fi");
@@ -132,7 +132,7 @@ static void build_main_screen() {
 
     lv_obj_t * img3 = lv_img_create(btn3);
     lv_img_set_src(img3, &img_monitor_48);
-    lv_obj_align(img3, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(img3, LV_ALIGN_TOP_MID, 0, 2);
 
     lv_obj_t * lbl3 = lv_label_create(btn3);
     lv_label_set_text(lbl3, "Monitor");
@@ -149,7 +149,7 @@ static void build_main_screen() {
 
     lv_obj_t * img4 = lv_img_create(btn4);
     lv_img_set_src(img4, &img_info_48);
-    lv_obj_align(img4, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(img4, LV_ALIGN_TOP_MID, 0, 2);
 
     lv_obj_t * lbl4 = lv_label_create(btn4);
     lv_label_set_text(lbl4, "Info");
