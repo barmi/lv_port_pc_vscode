@@ -84,10 +84,10 @@ static void build_main_screen() {
     lv_obj_align(welcome, LV_ALIGN_TOP_MID, 0, 20);
 
     int btn_w = 140;
-    int btn_h = 120; // [수정됨] 이미지 수용을 위해 높이 증가
+    int btn_h = 100; // [수정됨] 화면 높이를 넘지 않도록 조정
     int gap_x = 30;
-    int gap_y = 30;
-    int start_y = 70;
+    int gap_y = 20;
+    int start_y = 60;
 
     // Btn 1: Settings
     lv_obj_t * btn1 = lv_btn_create(scr_main);
