@@ -126,7 +126,7 @@ const char* wifi_mgr_get_time() {
     static char time_buf[64];
     struct tm timeinfo;
     if(!getLocalTime(&timeinfo)){
-        return "시간 동기화 안됨";
+        return "Time not synced";
     }
     // format: 2024-03-20 14:30:05
     strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &timeinfo);

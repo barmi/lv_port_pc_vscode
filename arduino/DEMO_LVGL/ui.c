@@ -11,6 +11,7 @@ lv_obj_t * scr_wifi = NULL;
 lv_obj_t * scr_chart = NULL;
 lv_obj_t * scr_info = NULL;
 static lv_obj_t * lbl_info = NULL;
+static lv_obj_t * lbl_status = NULL;
 
 /* --- 스타일 변수 --- */
 static lv_style_t style_btn_main;
@@ -135,11 +136,11 @@ static void build_main_screen() {
     scr_main = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(scr_main, lv_color_hex(0xEEEEEE), 0);
 
-    lv_obj_t * welcome = lv_label_create(scr_main);
-    lv_label_set_text(welcome, "Smart Dashboard");
-    lv_obj_set_style_text_font(welcome, &lv_font_montserrat_24, 0);
-    lv_obj_set_style_text_color(welcome, lv_color_hex(0x333333), 0);
-    lv_obj_align(welcome, LV_ALIGN_TOP_MID, 0, 20);
+    lbl_status = lv_label_create(scr_main);
+    lv_obj_set_style_text_font(lbl_status, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(lbl_status, lv_color_hex(0x666666), 0);
+    lv_obj_align(lbl_status, LV_ALIGN_TOP_MID, 0, 5);
+    lv_label_set_text(lbl_status, "Initializing...");
 
     int btn_w = 140;
     int btn_h = 100; // [수정됨] 화면 높이를 넘지 않도록 조정
@@ -476,6 +477,42 @@ static void wifi_timer_cb(lv_timer_t * timer) {
             "현재 시각: %s",
             wifi_mgr_get_ip(),
             wifi_mgr_get_time()
+        );
+    }
+
+    // 메인 화면 상태 표시줄 업데이트
+    if (lv_scr_act() == scr_main && lbl_status) {
+        const char * sym_wifi = "";
+        const char * status_text = "Disconnected";
+        wifi_status_t status = wifi_mgr_get_status();
+        
+        switch(status) {
+            case WIFI_STATUS_DISCONNECTED:
+                sym_wifi = "";
+                status_text = "Disconnected";
+                break;
+            case WIFI_STATUS_SCANNING:
+                sym_wifi = LV_SYMBOL_LOOP;
+                status_text = "Scanning...";
+                break;
+            case WIFI_STATUS_CONNECTING:
+                sym_wifi = LV_SYMBOL_CHARGE;
+                status_text = "Connecting...";
+                break;
+            case WIFI_STATUS_CONNECTED:
+                sym_wifi = LV_SYMBOL_WIFI;
+                status_text = "Connected";
+                break;
+            case WIFI_STATUS_CONNECT_FAILED:
+                sym_wifi = LV_SYMBOL_WARNING;
+                status_text = "Failed";
+                break;
+        }
+
+        lv_label_set_text_fmt(lbl_status, "%s  %s %s", 
+            wifi_mgr_get_time(),
+            sym_wifi,
+            status_text
         );
     }
 }
