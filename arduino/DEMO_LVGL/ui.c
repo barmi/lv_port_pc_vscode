@@ -41,6 +41,43 @@ static void wifi_scan_event_cb(lv_event_t * e);
 static void wifi_list_event_cb(lv_event_t * e);
 static void wifi_pw_conn_event_cb(lv_event_t * e);
 static void wifi_pw_close_event_cb(lv_event_t * e);
+static void kb_pw_event_cb(lv_event_t * e);
+
+/* [추가됨] 비활성 타임아웃 처리: 사용자가 입력 중일 때 메인으로 돌아가지 않도록 함 */
+#define UI_IDLE_TIMEOUT_MS  30000  // 30초 동안 입력 없으면 메인으로
+
+static void check_ui_idle_timeout() {
+    // 현재 활성 화면이 메인 화면이면 타임아웃 체크 안 함
+    lv_obj_t * act_scr = lv_scr_act();
+    if(act_scr == scr_main) return;
+
+    // WiFi 설정 화면에서 비밀번호 입력창이 열려있는 경우, 
+    // 혹은 키보드가 활성화된 상태라면 타임아웃 시간을 초기화하여 복귀를 방지함
+    if(act_scr == scr_wifi) {
+        if(cont_pw && !lv_obj_has_flag(cont_pw, LV_OBJ_FLAG_HIDDEN)) {
+            // 사용자가 비밀번호를 입력 중이라고 판단하여 비활성 시간 초기화
+            lv_disp_trig_activity(NULL);
+            return;
+        }
+    }
+
+    // 마지막 입력 이후 경과 시간(ms) 확인 (LVGL v8 API)
+    uint32_t idle_time = lv_disp_get_inactive_time(NULL);
+
+    // 타임아웃 초과 시 메인으로 복귀
+    if(idle_time > UI_IDLE_TIMEOUT_MS) {
+        // 비밀번호 입력창이 열려있으면 닫기
+        if(cont_pw && !lv_obj_has_flag(cont_pw, LV_OBJ_FLAG_HIDDEN)) {
+            lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
+        }
+        
+        if(scr_main != NULL) {
+            lv_scr_load_anim(scr_main, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 250, 0, false);
+            // 복귀 후 비활성 시간 초기화
+            lv_disp_trig_activity(NULL);
+        }
+    }
+}
 
 /* [수정됨] 화면 전환 이벤트 콜백 */
 static void nav_event_cb(lv_event_t * e) {
@@ -48,6 +85,8 @@ static void nav_event_cb(lv_event_t * e) {
     lv_obj_t * target = (lv_obj_t *)lv_event_get_user_data(e);
 
     if(code == LV_EVENT_CLICKED && target != NULL) {
+        // 화면 전환 시 비활성 시간 초기화
+        lv_disp_trig_activity(NULL);
         // 중요: 마지막 인자를 false로 설정하여 이전 화면을 삭제하지 않음
         lv_scr_load_anim(target, LV_SCR_LOAD_ANIM_MOVE_LEFT, 250, 0, false);
     }
@@ -58,6 +97,8 @@ static void home_event_cb(lv_event_t * e) {
     lv_event_code_t code = lv_event_get_code(e);
     if(code == LV_EVENT_CLICKED) {
         if(scr_main != NULL) {
+             // 비활성 시간 초기화
+            lv_disp_trig_activity(NULL);
              // 중요: 마지막 인자를 false로 설정하여 현재 화면을 삭제하지 않음
             lv_scr_load_anim(scr_main, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 250, 0, false);
         }
@@ -255,24 +296,24 @@ static void build_wifi_screen() {
     lv_obj_set_style_bg_opa(cont_pw, LV_OPA_70, 0);
 
     lv_obj_t * pw_box = lv_obj_create(cont_pw);
-    lv_obj_set_size(pw_box, 300, 200);
-    lv_obj_align(pw_box, LV_ALIGN_TOP_MID, 0, 20);
+    lv_obj_set_size(pw_box, 320, 160); // 크기 조정 (가로 320, 세로 160)
+    lv_obj_align(pw_box, LV_ALIGN_TOP_MID, 0, 5); // 최대한 상단으로 붙임
 
     lv_obj_t * lbl_pw_title = lv_label_create(pw_box);
     lv_label_set_text(lbl_pw_title, "비밀번호 입력");
     lv_obj_set_style_text_font(lbl_pw_title, &lv_font_korean_844, 0);
-    lv_obj_align(lbl_pw_title, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_align(lbl_pw_title, LV_ALIGN_TOP_MID, 0, -5);
 
     ta_pw = lv_textarea_create(pw_box);
-    lv_obj_set_size(ta_pw, LV_PCT(90), 40);
-    lv_obj_align(ta_pw, LV_ALIGN_CENTER, 0, -10);
+    lv_obj_set_size(ta_pw, LV_PCT(95), 45);
+    lv_obj_align(ta_pw, LV_ALIGN_TOP_MID, 0, 25);
     lv_textarea_set_password_mode(ta_pw, true);
     lv_textarea_set_one_line(ta_pw, true);
     lv_obj_add_state(ta_pw, LV_STATE_FOCUSED);
 
     lv_obj_t * btn_conn = lv_btn_create(pw_box);
-    lv_obj_set_size(btn_conn, 80, 40);
-    lv_obj_align(btn_conn, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+    lv_obj_set_size(btn_conn, 100, 40);
+    lv_obj_align(btn_conn, LV_ALIGN_BOTTOM_LEFT, 15, -5);
     lv_obj_t * lbl_conn = lv_label_create(btn_conn);
     lv_label_set_text(lbl_conn, "연결");
     lv_obj_set_style_text_font(lbl_conn, &lv_font_korean_844, 0);
@@ -280,8 +321,8 @@ static void build_wifi_screen() {
     lv_obj_add_event_cb(btn_conn, wifi_pw_conn_event_cb, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t * btn_close = lv_btn_create(pw_box);
-    lv_obj_set_size(btn_close, 80, 40);
-    lv_obj_align(btn_close, LV_ALIGN_BOTTOM_RIGHT, -20, -10);
+    lv_obj_set_size(btn_close, 100, 40);
+    lv_obj_align(btn_close, LV_ALIGN_BOTTOM_RIGHT, -15, -5);
     lv_obj_t * lbl_close = lv_label_create(btn_close);
     lv_label_set_text(lbl_close, "취소");
     lv_obj_set_style_text_font(lbl_close, &lv_font_korean_844, 0);
@@ -290,7 +331,9 @@ static void build_wifi_screen() {
 
     kb_pw = lv_keyboard_create(cont_pw);
     lv_keyboard_set_textarea(kb_pw, ta_pw);
+    lv_obj_set_size(kb_pw, LV_PCT(100), LV_PCT(50)); // 화면의 절반 차지
     lv_obj_align(kb_pw, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_add_event_cb(kb_pw, kb_pw_event_cb, LV_EVENT_ALL, NULL);
 
     /* 상태 갱신 타이머 시작 */
     lv_timer_create(wifi_timer_cb, 500, NULL);
@@ -371,6 +414,9 @@ void ui_init(void) {
  * ========================================== */
 
 static void wifi_timer_cb(lv_timer_t * timer) {
+    /* 타임아웃 체크 */
+    check_ui_idle_timeout();
+
 #ifdef ARDUINO
     wifi_mgr_loop();
     
@@ -397,15 +443,19 @@ static void wifi_timer_cb(lv_timer_t * timer) {
     bool current_scanning = wifi_mgr_is_scanning();
     if (last_scanning && !current_scanning) {
         // 스캔 완료됨 -> 리스트 갱신
-        lv_obj_clean(list_wifi);
-        int count = wifi_mgr_get_scan_count();
-        if (count == 0) {
-            lv_list_add_text(list_wifi, "검색된 네트워크 없음");
-        } else {
-            for (int i = 0; i < count; i++) {
-                const char * ssid = wifi_mgr_get_scan_ssid(i);
-                lv_obj_t * btn = lv_list_add_btn(list_wifi, LV_SYMBOL_WIFI, ssid);
-                lv_obj_add_event_cb(btn, wifi_list_event_cb, LV_EVENT_CLICKED, NULL);
+        if(list_wifi) {
+            lv_obj_clean(list_wifi);
+            int count = wifi_mgr_get_scan_count();
+            if (count == 0) {
+                lv_list_add_text(list_wifi, "검색된 네트워크 없음");
+            } else {
+                for (int i = 0; i < count; i++) {
+                    const char * ssid = wifi_mgr_get_scan_ssid(i);
+                    if(ssid && ssid[0] != '\0') {
+                        lv_obj_t * btn = lv_list_add_btn(list_wifi, LV_SYMBOL_WIFI, ssid);
+                        lv_obj_add_event_cb(btn, wifi_list_event_cb, LV_EVENT_CLICKED, NULL);
+                    }
+                }
             }
         }
     }
@@ -434,12 +484,31 @@ static void wifi_list_event_cb(lv_event_t * e) {
 
 static void wifi_pw_conn_event_cb(lv_event_t * e) {
     const char * pw = lv_textarea_get_text(ta_pw);
+    if(selected_ssid[0] != '\0') {
 #ifdef ARDUINO
-    wifi_mgr_connect(selected_ssid, pw);
+        wifi_mgr_connect(selected_ssid, pw);
 #endif
+    }
     lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void wifi_pw_close_event_cb(lv_event_t * e) {
     lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void kb_pw_event_cb(lv_event_t * e) {
+    lv_event_code_t code = lv_event_get_code(e);
+    if(code == LV_EVENT_READY) {
+        // "Check" 버튼 클릭 시 연결 시도
+        const char * pw = lv_textarea_get_text(ta_pw);
+        if(selected_ssid[0] != '\0') {
+#ifdef ARDUINO
+            wifi_mgr_connect(selected_ssid, pw);
+#endif
+        }
+        lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
+    } else if(code == LV_EVENT_CANCEL) {
+        // "Close" 버튼 클릭 시 닫기
+        lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
+    }
 }
