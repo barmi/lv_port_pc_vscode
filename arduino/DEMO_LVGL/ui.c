@@ -3,6 +3,10 @@
 #include "font_korean.h"
 #include <stdio.h>
 
+#ifdef ARDUINO
+#include "wifi_manager.h"
+#endif
+
 /* --- 전역 변수: 화면 객체들 --- */
 lv_obj_t * scr_main = NULL;
 lv_obj_t * scr_settings = NULL;
@@ -23,6 +27,20 @@ static void build_settings_screen();
 static void build_wifi_screen();
 static void build_chart_screen();
 static void build_info_screen();
+
+/* WiFi 관련 UI 객체 */
+static lv_obj_t * list_wifi;
+static lv_obj_t * lbl_wifi_status;
+static lv_obj_t * cont_pw;
+static lv_obj_t * ta_pw;
+static lv_obj_t * kb_pw;
+static char selected_ssid[64];
+
+static void wifi_timer_cb(lv_timer_t * timer);
+static void wifi_scan_event_cb(lv_event_t * e);
+static void wifi_list_event_cb(lv_event_t * e);
+static void wifi_pw_conn_event_cb(lv_event_t * e);
+static void wifi_pw_close_event_cb(lv_event_t * e);
 
 /* [수정됨] 화면 전환 이벤트 콜백 */
 static void nav_event_cb(lv_event_t * e) {
@@ -198,18 +216,84 @@ static void build_settings_screen() {
 
 static void build_wifi_screen() {
     scr_wifi = lv_obj_create(NULL);
-    create_header(scr_wifi, "Wi-Fi Networks");
+    create_header(scr_wifi, "Wi-Fi 설정");
 
-    lv_obj_t * list = lv_list_create(scr_wifi);
-    lv_obj_set_size(list, LV_PCT(90), LV_PCT(70));
-    lv_obj_align(list, LV_ALIGN_BOTTOM_MID, 0, -20);
+    /* 상단 컨트롤 영역 */
+    lv_obj_t * ctrl_cont = lv_obj_create(scr_wifi);
+    lv_obj_set_size(ctrl_cont, LV_PCT(100), 50);
+    lv_obj_align(ctrl_cont, LV_ALIGN_TOP_MID, 0, 50);
+    lv_obj_set_style_border_width(ctrl_cont, 0, 0);
+    lv_obj_set_style_bg_opa(ctrl_cont, 0, 0);
+    lv_obj_clear_flag(ctrl_cont, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t * btn;
-    lv_list_add_text(list, "Available Networks");
-    btn = lv_list_add_btn(list, LV_SYMBOL_WIFI, "Home_5G_GIGA");
-    lv_obj_add_state(btn, LV_STATE_CHECKED);
-    btn = lv_list_add_btn(list, LV_SYMBOL_WIFI, "Office_Guest");
-    btn = lv_list_add_btn(list, LV_SYMBOL_CLOSE, "Disconnect");
+    lv_obj_t * btn_scan = lv_btn_create(ctrl_cont);
+    lv_obj_set_size(btn_scan, 80, 40);
+    lv_obj_align(btn_scan, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_t * lbl_scan = lv_label_create(btn_scan);
+    lv_label_set_text(lbl_scan, "스캔");
+    lv_obj_set_style_text_font(lbl_scan, &lv_font_korean_844, 0);
+    lv_obj_center(lbl_scan);
+    lv_obj_add_event_cb(btn_scan, wifi_scan_event_cb, LV_EVENT_CLICKED, NULL);
+
+    lbl_wifi_status = lv_label_create(ctrl_cont);
+    lv_label_set_text(lbl_wifi_status, "준비");
+    lv_obj_set_style_text_font(lbl_wifi_status, &lv_font_korean_844, 0);
+    lv_obj_align(lbl_wifi_status, LV_ALIGN_RIGHT_MID, -10, 0);
+
+    /* WiFi 리스트 */
+    list_wifi = lv_list_create(scr_wifi);
+    lv_obj_set_size(list_wifi, LV_PCT(95), LV_PCT(60));
+    lv_obj_align(list_wifi, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_set_style_text_font(list_wifi, &lv_font_korean_844, 0);
+    
+    /* 비밀번호 입력 레이어 (오버레이) */
+    cont_pw = lv_obj_create(scr_wifi);
+    lv_obj_set_size(cont_pw, LV_PCT(100), LV_PCT(100));
+    lv_obj_center(cont_pw);
+    lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN); // 초기에는 숨김
+    lv_obj_set_style_bg_color(cont_pw, lv_palette_main(LV_PALETTE_GREY), 0);
+    lv_obj_set_style_bg_opa(cont_pw, LV_OPA_70, 0);
+
+    lv_obj_t * pw_box = lv_obj_create(cont_pw);
+    lv_obj_set_size(pw_box, 300, 200);
+    lv_obj_align(pw_box, LV_ALIGN_TOP_MID, 0, 20);
+
+    lv_obj_t * lbl_pw_title = lv_label_create(pw_box);
+    lv_label_set_text(lbl_pw_title, "비밀번호 입력");
+    lv_obj_set_style_text_font(lbl_pw_title, &lv_font_korean_844, 0);
+    lv_obj_align(lbl_pw_title, LV_ALIGN_TOP_MID, 0, 0);
+
+    ta_pw = lv_textarea_create(pw_box);
+    lv_obj_set_size(ta_pw, LV_PCT(90), 40);
+    lv_obj_align(ta_pw, LV_ALIGN_CENTER, 0, -10);
+    lv_textarea_set_password_mode(ta_pw, true);
+    lv_textarea_set_one_line(ta_pw, true);
+    lv_obj_add_state(ta_pw, LV_STATE_FOCUSED);
+
+    lv_obj_t * btn_conn = lv_btn_create(pw_box);
+    lv_obj_set_size(btn_conn, 80, 40);
+    lv_obj_align(btn_conn, LV_ALIGN_BOTTOM_LEFT, 20, -10);
+    lv_obj_t * lbl_conn = lv_label_create(btn_conn);
+    lv_label_set_text(lbl_conn, "연결");
+    lv_obj_set_style_text_font(lbl_conn, &lv_font_korean_844, 0);
+    lv_obj_center(lbl_conn);
+    lv_obj_add_event_cb(btn_conn, wifi_pw_conn_event_cb, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t * btn_close = lv_btn_create(pw_box);
+    lv_obj_set_size(btn_close, 80, 40);
+    lv_obj_align(btn_close, LV_ALIGN_BOTTOM_RIGHT, -20, -10);
+    lv_obj_t * lbl_close = lv_label_create(btn_close);
+    lv_label_set_text(lbl_close, "취소");
+    lv_obj_set_style_text_font(lbl_close, &lv_font_korean_844, 0);
+    lv_obj_center(lbl_close);
+    lv_obj_add_event_cb(btn_close, wifi_pw_close_event_cb, LV_EVENT_CLICKED, NULL);
+
+    kb_pw = lv_keyboard_create(cont_pw);
+    lv_keyboard_set_textarea(kb_pw, ta_pw);
+    lv_obj_align(kb_pw, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    /* 상태 갱신 타이머 시작 */
+    lv_timer_create(wifi_timer_cb, 500, NULL);
 }
 
 static void build_chart_screen() {
@@ -280,4 +364,82 @@ void ui_init(void) {
     build_main_screen();
 
     lv_scr_load(scr_main);
+}
+
+/* ==========================================
+ * WiFi 이벤트 및 타이머 핸들러
+ * ========================================== */
+
+static void wifi_timer_cb(lv_timer_t * timer) {
+#ifdef ARDUINO
+    wifi_mgr_loop();
+    
+    wifi_status_t status = wifi_mgr_get_status();
+    switch(status) {
+        case WIFI_STATUS_DISCONNECTED:
+            lv_label_set_text(lbl_wifi_status, "연결 끊김");
+            break;
+        case WIFI_STATUS_SCANNING:
+            lv_label_set_text(lbl_wifi_status, "스캔 중...");
+            break;
+        case WIFI_STATUS_CONNECTING:
+            lv_label_set_text(lbl_wifi_status, "연결 중...");
+            break;
+        case WIFI_STATUS_CONNECTED:
+            lv_label_set_text_fmt(lbl_wifi_status, "연결됨: %s", wifi_mgr_get_current_ssid());
+            break;
+        case WIFI_STATUS_CONNECT_FAILED:
+            lv_label_set_text(lbl_wifi_status, "연결 실패");
+            break;
+    }
+
+    static bool last_scanning = false;
+    bool current_scanning = wifi_mgr_is_scanning();
+    if (last_scanning && !current_scanning) {
+        // 스캔 완료됨 -> 리스트 갱신
+        lv_obj_clean(list_wifi);
+        int count = wifi_mgr_get_scan_count();
+        if (count == 0) {
+            lv_list_add_text(list_wifi, "검색된 네트워크 없음");
+        } else {
+            for (int i = 0; i < count; i++) {
+                const char * ssid = wifi_mgr_get_scan_ssid(i);
+                lv_obj_t * btn = lv_list_add_btn(list_wifi, LV_SYMBOL_WIFI, ssid);
+                lv_obj_add_event_cb(btn, wifi_list_event_cb, LV_EVENT_CLICKED, NULL);
+            }
+        }
+    }
+    last_scanning = current_scanning;
+#else
+    lv_label_set_text(lbl_wifi_status, "PC 모드 (WiFi 불가)");
+#endif
+}
+
+static void wifi_scan_event_cb(lv_event_t * e) {
+#ifdef ARDUINO
+    wifi_mgr_scan_start();
+#endif
+}
+
+static void wifi_list_event_cb(lv_event_t * e) {
+    lv_obj_t * btn = lv_event_get_target(e);
+    const char * ssid = lv_list_get_btn_text(list_wifi, btn);
+    if (ssid) {
+        snprintf(selected_ssid, sizeof(selected_ssid), "%s", ssid);
+    }
+    
+    lv_obj_clear_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
+    lv_textarea_set_text(ta_pw, "");
+}
+
+static void wifi_pw_conn_event_cb(lv_event_t * e) {
+    const char * pw = lv_textarea_get_text(ta_pw);
+#ifdef ARDUINO
+    wifi_mgr_connect(selected_ssid, pw);
+#endif
+    lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void wifi_pw_close_event_cb(lv_event_t * e) {
+    lv_obj_add_flag(cont_pw, LV_OBJ_FLAG_HIDDEN);
 }

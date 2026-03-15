@@ -4,6 +4,7 @@
 #include "esp_bsp.h"
 #include "lv_port.h"
 #include "ui.h"
+#include "wifi_manager.h"
 
 void setup() {
     Serial.begin(115200);
@@ -18,6 +19,7 @@ void setup() {
 
     bsp_display_lock(0);
 
+    wifi_mgr_init();
     ui_init();
 
     bsp_display_unlock();
