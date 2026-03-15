@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "ui_img.h"
+#include "font_korean.h"
 #include <stdio.h>
 
 /* --- 전역 변수: 화면 객체들 --- */
@@ -101,7 +102,8 @@ static void build_main_screen() {
     lv_obj_align(img1, LV_ALIGN_TOP_MID, 0, 2);
 
     lv_obj_t * lbl1 = lv_label_create(btn1);
-    lv_label_set_text(lbl1, "Settings");
+    lv_label_set_text(lbl1, "설정");
+    lv_obj_set_style_text_font(lbl1, &lv_font_korean_844, 0);
     lv_obj_align(lbl1, LV_ALIGN_BOTTOM_MID, 0, -10);
     
     lv_obj_add_event_cb(btn1, nav_event_cb, LV_EVENT_CLICKED, scr_settings);
@@ -118,7 +120,8 @@ static void build_main_screen() {
     lv_obj_align(img2, LV_ALIGN_TOP_MID, 0, 2);
 
     lv_obj_t * lbl2 = lv_label_create(btn2);
-    lv_label_set_text(lbl2, "Wi-Fi");
+    lv_label_set_text(lbl2, "무선 WiFi");
+    lv_obj_set_style_text_font(lbl2, &lv_font_korean_844, 0);
     lv_obj_align(lbl2, LV_ALIGN_BOTTOM_MID, 0, -10);
     
     lv_obj_add_event_cb(btn2, nav_event_cb, LV_EVENT_CLICKED, scr_wifi);

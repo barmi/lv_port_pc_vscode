@@ -74,6 +74,7 @@ set(MAIN_SOURCES
     src/hal/hal.c 
     arduino/DEMO_LVGL/ui.c
     arduino/DEMO_LVGL/ui_img.c
+    arduino/DEMO_LVGL/font_korean.c
 )
 include_directories(arduino/DEMO_LVGL)
 include_directories(arduino/DEMO_LVGL/libraries)
@@ -151,7 +152,7 @@ endif()
 
 add_executable(main ${MAIN_SOURCES})
 target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
-target_include_directories(main PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/arduino/DEMO_LVGL)
+target_include_directories(main PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/arduino/DEMO_LVGL ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(main ${MAIN_LIBS})
 
 # On Windows, GUI applications do not show a console by default,
