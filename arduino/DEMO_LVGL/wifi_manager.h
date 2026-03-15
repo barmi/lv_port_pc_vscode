@@ -49,6 +49,12 @@ const char* wifi_mgr_get_current_ssid();
 // 저장된 SSID 가져오기 (최근 성공한 것)
 const char* wifi_mgr_get_saved_ssid();
 
+// 현재 IP 주소 가져오기
+const char* wifi_mgr_get_ip();
+
+// 현재 시간 가져오기 (문자열 형식)
+const char* wifi_mgr_get_time();
+
 #ifdef __cplusplus
 }
 #endif

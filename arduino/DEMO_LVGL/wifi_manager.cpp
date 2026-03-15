@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <Preferences.h>
+#include <time.h>
 #include "wifi_manager.h"
 
 static Preferences preferences;
@@ -22,6 +23,9 @@ void wifi_mgr_init() {
         WiFi.begin(saved_ssid.c_str(), saved_password.c_str());
         current_status = WIFI_STATUS_CONNECTING;
     }
+
+    // SNTP 초기화 (KST: UTC+9)
+    configTime(9 * 3600, 0, "pool.ntp.org", "time.nist.gov");
 }
 
 void wifi_mgr_loop() {
@@ -106,6 +110,90 @@ const char* wifi_mgr_get_current_ssid() {
 
 const char* wifi_mgr_get_saved_ssid() {
     return saved_ssid.c_str();
+}
+
+const char* wifi_mgr_get_ip() {
+    static String ip_str;
+    if (WiFi.status() == WL_CONNECTED) {
+        ip_str = WiFi.localIP().toString();
+    } else {
+        ip_str = "0.0.0.0";
+    }
+    return ip_str.c_str();
+}
+
+const char* wifi_mgr_get_time() {
+    static char time_buf[64];
+    struct tm timeinfo;
+    if(!getLocalTime(&timeinfo)){
+        return "시간 동기화 안됨";
+    }
+    // format: 2024-03-20 14:30:05
+    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    return time_buf;
+}
+
+#else // !ARDUINO
+
+#include "wifi_manager.h"
+#include <time.h>
+#include <stdio.h>
+#include <string.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#endif
+
+void wifi_mgr_init() {}
+void wifi_mgr_loop() {}
+void wifi_mgr_scan_start() {}
+bool wifi_mgr_is_scanning() { return false; }
+int wifi_mgr_get_scan_count() { return 0; }
+const char* wifi_mgr_get_scan_ssid(int index) { return ""; }
+int wifi_mgr_get_scan_rssi(int index) { return 0; }
+void wifi_mgr_connect(const char* ssid, const char* password) {}
+wifi_status_t wifi_mgr_get_status() { return WIFI_STATUS_CONNECTED; }
+const char* wifi_mgr_get_current_ssid() { return "PC Ethernet/WiFi"; }
+const char* wifi_mgr_get_saved_ssid() { return ""; }
+
+const char* wifi_mgr_get_ip() {
+    static char ip_buf[64] = "127.0.0.1";
+#ifndef _WIN32
+    struct ifaddrs *ifAddrStruct = NULL;
+    struct ifaddrs *ifa = NULL;
+    void *tmpAddrPtr = NULL;
+
+    getifaddrs(&ifAddrStruct);
+
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr) continue;
+        if (ifa->ifa_addr->sa_family == AF_INET) { // check it is IP4
+            tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+            char addressBuffer[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+            if (strcmp(ifa->ifa_name, "lo") != 0 && strcmp(ifa->ifa_name, "lo0") != 0) {
+                strncpy(ip_buf, addressBuffer, sizeof(ip_buf));
+                break;
+            }
+        }
+    }
+    if (ifAddrStruct != NULL) freeifaddrs(ifAddrStruct);
+#endif
+    return ip_buf;
+}
+
+const char* wifi_mgr_get_time() {
+    static char time_buf[64];
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", t);
+    return time_buf;
 }
 
 #endif // ARDUINO

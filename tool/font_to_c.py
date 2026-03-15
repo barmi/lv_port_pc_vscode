@@ -37,6 +37,7 @@ static const uint8_t chosung_map[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 
 static bool get_glyph_dsc_cb(const lv_font_t * font, lv_font_glyph_dsc_t * dsc_out, uint32_t letter, uint32_t letter_next) {
     if (letter < 128) {
+        if (letter < 32) return false;
         dsc_out->adv_w = 8;
         dsc_out->box_w = 8;
         dsc_out->box_h = 16;

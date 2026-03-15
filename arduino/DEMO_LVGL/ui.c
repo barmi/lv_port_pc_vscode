@@ -2,10 +2,7 @@
 #include "ui_img.h"
 #include "font_korean.h"
 #include <stdio.h>
-
-#ifdef ARDUINO
 #include "wifi_manager.h"
-#endif
 
 /* --- 전역 변수: 화면 객체들 --- */
 lv_obj_t * scr_main = NULL;
@@ -13,6 +10,7 @@ lv_obj_t * scr_settings = NULL;
 lv_obj_t * scr_wifi = NULL;
 lv_obj_t * scr_chart = NULL;
 lv_obj_t * scr_info = NULL;
+static lv_obj_t * lbl_info = NULL;
 
 /* --- 스타일 변수 --- */
 static lv_style_t style_btn_main;
@@ -363,15 +361,18 @@ static void build_info_screen() {
     create_header(scr_info, "Device Information");
 
     lv_obj_t * panel = lv_obj_create(scr_info);
-    lv_obj_set_size(panel, LV_PCT(80), LV_PCT(60));
+    lv_obj_set_size(panel, LV_PCT(90), LV_PCT(70));
     lv_obj_align(panel, LV_ALIGN_CENTER, 0, 20);
 
-    lv_obj_t * lbl_info = lv_label_create(panel);
+    lbl_info = lv_label_create(panel);
+    lv_obj_set_style_text_font(lbl_info, &lv_font_korean_844, 0);
     lv_label_set_text(lbl_info, 
         "Model: ESP32-S3 HMI\n"
         "Firmware: v1.2.0\n"
         "Resolution: 480x320\n"
-        "LVGL Ver: 8.3.x"
+        "LVGL Ver: 8.4.0\n"
+        "IP: 0.0.0.0\n"
+        "Time: -"
     );
     lv_obj_center(lbl_info);
 }
@@ -463,6 +464,20 @@ static void wifi_timer_cb(lv_timer_t * timer) {
 #else
     lv_label_set_text(lbl_wifi_status, "PC 모드 (WiFi 불가)");
 #endif
+
+    // Info 화면 업데이트 (현재 활성화된 화면이 scr_info 인 경우)
+    if (lv_scr_act() == scr_info && lbl_info) {
+        lv_label_set_text_fmt(lbl_info, 
+            "Model: ESP32-S3 HMI\n"
+            "Firmware: v1.2.0\n"
+            "Resolution: 480x320\n"
+            "LVGL Ver: 8.4.0\n"
+            "IP 주소: %s\n"
+            "현재 시각: %s",
+            wifi_mgr_get_ip(),
+            wifi_mgr_get_time()
+        );
+    }
 }
 
 static void wifi_scan_event_cb(lv_event_t * e) {
