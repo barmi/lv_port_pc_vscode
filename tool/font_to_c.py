@@ -69,19 +69,19 @@ static const uint8_t * get_glyph_bitmap_cb(const lv_font_t * font, uint32_t lett
         uint32_t f_idx = idx % 28;
 
         int m_type;
-        if (m_idx <= 7 || m_idx == 20) m_type = 0; // Vertical
-        else if (m_idx == 8 || m_idx == 12 || m_idx == 18) m_type = 1; // Horizontal
-        else if (m_idx == 13 || m_idx == 17) m_type = 2; // Downward
-        else m_type = 3; // Combined
+        if (m_idx <= 7 || m_idx == 20) m_type = 0; // ㅏ ㅐ ㅑ ㅒ ㅓ ㅔ ㅕ ㅖ ㅣ (Vertical)
+        else if (m_idx == 8 || m_idx == 12 || m_idx == 18) m_type = 1; // ㅗ ㅛ ㅡ (Horizontal)
+        else if (m_idx == 13 || m_idx == 17) m_type = 2; // ㅜ ㅠ (Below)
+        else m_type = 3; // ㅘ ㅙ ㅚ ㅝ ㅞ ㅟ ㅢ (Combined)
 
         int c_set = (f_idx == 0) ? m_type : (m_type + 4);
         int m_set = (f_idx == 0) ? ((c_idx == 0 || c_idx == 15) ? 0 : 1) : ((c_idx == 0 || c_idx == 15) ? 2 : 3);
         
         int f_set;
-        if (m_idx == 0 || m_idx == 2 || m_idx == 4 || m_idx == 6 || m_idx == 9 || m_idx == 11 || m_idx == 14 || m_idx == 19) f_set = 0;
-        else if (m_idx == 1 || m_idx == 3 || m_idx == 5 || m_idx == 7 || m_idx == 10 || m_idx == 15 || m_idx == 16 || m_idx == 20) f_set = 1;
-        else if (m_idx == 8 || m_idx == 12 || m_idx == 13 || m_idx == 17) f_set = 2;
-        else f_set = 3; // m_idx == 18 (ㅡ)
+        if (m_idx <= 7 || m_idx == 20) f_set = 0; // ㅏ ㅐ ㅑ ㅒ ㅓ ㅔ ㅕ ㅖ ㅣ
+        else if (m_idx == 8 || m_idx == 12 || m_idx == 18) f_set = 1; // ㅗ ㅛ ㅡ
+        else if (m_idx == 13 || m_idx == 17) f_set = 2; // ㅜ ㅠ
+        else f_set = 3; // ㅘ ㅙ ㅚ ㅝ ㅞ ㅟ ㅢ
 
         for (int i = 0; i < 32; i++) glyph_buffer[i] = 0;
 

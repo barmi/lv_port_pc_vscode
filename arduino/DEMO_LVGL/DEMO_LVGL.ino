@@ -5,6 +5,7 @@
 #include "lv_port.h"
 #include "ui.h"
 #include "wifi_manager.h"
+#include "sd_manager.h"
 
 void setup() {
     Serial.begin(115200);
@@ -17,11 +18,13 @@ void setup() {
     bsp_display_start_with_config(&cfg);
     bsp_display_backlight_on();
 
-    bsp_display_lock(0);
-
+    // WiFi와 SD 초기화는 디스플레이 잠금 없이 수행 (내부에서 리소스 로딩 시간이 걸릴 수 있음)
     wifi_mgr_init();
-    ui_init();
+    sd_mgr_init();
 
+    // UI 객체 생성은 디스플레이 잠금을 유지해야 함
+    bsp_display_lock(0);
+    ui_init();
     bsp_display_unlock();
 }
 

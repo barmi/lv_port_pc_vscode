@@ -3,6 +3,7 @@
 #include "font_korean.h"
 #include <stdio.h>
 #include "wifi_manager.h"
+#include "sd_manager.h"
 
 /* --- 전역 변수: 화면 객체들 --- */
 lv_obj_t * scr_main = NULL;
@@ -20,7 +21,8 @@ static lv_style_t style_title;
 
 /* --- 내부 함수 선언 --- */
 static void ui_init_styles();
-static void create_header(lv_obj_t * parent, const char * title_text);
+static lv_obj_t * create_header(lv_obj_t * parent, const char * title_text);
+static void info_refresh_event_cb(lv_event_t * e);
 static void build_main_screen();
 static void build_settings_screen();
 static void build_wifi_screen();
@@ -108,7 +110,7 @@ static void home_event_cb(lv_event_t * e) {
  * UI 빌더 함수들
  * ========================================== */
 
-static void create_header(lv_obj_t * parent, const char * title_text) {
+static lv_obj_t * create_header(lv_obj_t * parent, const char * title_text) {
     lv_obj_t * header = lv_obj_create(parent);
     lv_obj_set_size(header, LV_PCT(100), 50);
     lv_obj_add_style(header, &style_header, 0);
@@ -130,6 +132,8 @@ static void create_header(lv_obj_t * parent, const char * title_text) {
     lv_label_set_text(label, title_text);
     lv_obj_add_style(label, &style_title, 0);
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+
+    return header;
 }
 
 static void build_main_screen() {
@@ -359,7 +363,17 @@ static void build_chart_screen() {
 
 static void build_info_screen() {
     scr_info = lv_obj_create(NULL);
-    create_header(scr_info, "Device Information");
+    lv_obj_t * header = create_header(scr_info, "Device Information");
+
+    // SD Refresh 버튼 추가
+    lv_obj_t * btn_refresh = lv_btn_create(header);
+    lv_obj_set_size(btn_refresh, 40, 40);
+    lv_obj_align(btn_refresh, LV_ALIGN_RIGHT_MID, 5, 0);
+    lv_obj_set_style_bg_color(btn_refresh, lv_palette_main(LV_PALETTE_BLUE), 0);
+    lv_obj_t * lbl_refresh = lv_label_create(btn_refresh);
+    lv_label_set_text(lbl_refresh, LV_SYMBOL_REFRESH);
+    lv_obj_center(lbl_refresh);
+    lv_obj_add_event_cb(btn_refresh, info_refresh_event_cb, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t * panel = lv_obj_create(scr_info);
     lv_obj_set_size(panel, LV_PCT(90), LV_PCT(70));
@@ -367,15 +381,9 @@ static void build_info_screen() {
 
     lbl_info = lv_label_create(panel);
     lv_obj_set_style_text_font(lbl_info, &lv_font_korean_844, 0);
-    lv_label_set_text(lbl_info, 
-        "Model: ESP32-S3 HMI\n"
-        "Firmware: v1.2.0\n"
-        "Resolution: 480x320\n"
-        "LVGL Ver: 8.4.0\n"
-        "IP: 0.0.0.0\n"
-        "Time: -"
-    );
-    lv_obj_center(lbl_info);
+    lv_label_set_text(lbl_info, "Loading device info...");
+    lv_obj_set_width(lbl_info, LV_PCT(100)); // 라벨 너비를 패널에 맞춤
+    lv_obj_align(lbl_info, LV_ALIGN_TOP_LEFT, 0, 0); // 상단 좌측 정렬
 }
 
 static void ui_init_styles() {
@@ -468,16 +476,27 @@ static void wifi_timer_cb(lv_timer_t * timer) {
 
     // Info 화면 업데이트 (현재 활성화된 화면이 scr_info 인 경우)
     if (lv_scr_act() == scr_info && lbl_info) {
-        lv_label_set_text_fmt(lbl_info, 
+        char buf[256];
+        snprintf(buf, sizeof(buf), 
             "Model: ESP32-S3 HMI\n"
             "Firmware: v1.2.0\n"
             "Resolution: 480x320\n"
             "LVGL Ver: 8.4.0\n"
             "IP 주소: %s\n"
-            "현재 시각: %s",
+            "현재 시각: %s\n"
+            "------------------\n"
+            "SD 상태: %s\n"
+            "SD 파일 목록:",
             wifi_mgr_get_ip(),
-            wifi_mgr_get_time()
+            wifi_mgr_get_time(),
+            sd_mgr_get_status()
         );
+        
+        // 정적 정보 먼저 설정
+        lv_label_set_text(lbl_info, buf);
+        // 파일 목록은 뒤에 덧붙임 (메모리 제한 없이 표시 가능)
+        lv_label_ins_text(lbl_info, LV_LABEL_POS_LAST, "\n");
+        lv_label_ins_text(lbl_info, LV_LABEL_POS_LAST, sd_mgr_get_file_list());
     }
 
     // 메인 화면 상태 표시줄 업데이트
@@ -514,6 +533,15 @@ static void wifi_timer_cb(lv_timer_t * timer) {
             sym_wifi,
             status_text
         );
+    }
+}
+
+static void info_refresh_event_cb(lv_event_t * e) {
+#ifdef ARDUINO
+    sd_mgr_init();
+#endif
+    if (lbl_info) {
+        lv_label_set_text(lbl_info, "Refreshing SD info...");
     }
 }
 

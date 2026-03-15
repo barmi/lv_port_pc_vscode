@@ -76,6 +76,7 @@ set(MAIN_SOURCES
     arduino/DEMO_LVGL/ui_img.c
     arduino/DEMO_LVGL/font_korean.c
     arduino/DEMO_LVGL/wifi_manager.cpp
+    arduino/DEMO_LVGL/sd_manager.cpp
 )
 include_directories(arduino/DEMO_LVGL)
 include_directories(arduino/DEMO_LVGL/libraries)
