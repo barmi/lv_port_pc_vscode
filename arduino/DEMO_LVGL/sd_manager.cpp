@@ -39,9 +39,8 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels, String indent) {
 
 void sd_mgr_init() {
     sd_file_list = ""; // 초기화 시 파일 목록도 초기화
-    // JC3248W535 보드는 보통 SD_MMC (1-bit mode)를 사용함
-    // 핀 설정: CLK=14, CMD=15, D0=2
-    SD_MMC.setPins(14, 15, 2);
+    // SD_MMC 핀 설정 (D0:13, CLK:12, CMD:11)
+    SD_MMC.setPins(12, 11, 13);
     
     // begin() 호출 전에는 cardType()이 정확하지 않을 수 있으나, 
     // 실패 시의 상태를 알기 위해 먼저 begin()을 시도합니다.
@@ -50,14 +49,17 @@ void sd_mgr_init() {
         
         uint8_t cardType = SD_MMC.cardType();
         if (cardType == CARD_NONE) {
-            sd_status_msg = "No SD Card Inserted";
+            sd_status_msg = "SD Card Not Inserted";
         } else {
             // 카드는 있는데 마운트 실패 -> 포맷 문제일 가능성 높음
             String typeStr = "Unknown";
             if(cardType == CARD_MMC) typeStr = "MMC";
             else if(cardType == CARD_SD) typeStr = "SDSC";
             else if(cardType == CARD_SDHC) typeStr = "SDHC";
-            sd_status_msg = "Mount Failed (Type: " + typeStr + "). Check Format (FAT32/exFAT)";
+            
+            // 파티션 확인 등 추가 정보 시도 (SD_MMC 라이브러리 한계상 상세 파티션 정보는 어려울 수 있으나 
+            // 일단 카드가 인식되었다는 것 자체가 파티션 테이블은 읽었다는 의미일 수 있음)
+            sd_status_msg = "Mount Failed (Card Detected: " + typeStr + "). Check Format (FAT32/exFAT)";
         }
         Serial.println("SD Card Mount Failed: " + sd_status_msg);
     } else {
@@ -89,8 +91,8 @@ const char* sd_mgr_get_status() {
 
 const char* sd_mgr_get_file_list() {
     if (!sd_mounted) {
-        // 백그라운드에서 다시 시도하지 않고 상태만 반환 (UI 프리징 방지)
-        return "SD Card not mounted.";
+        // 마운트되지 않은 경우 현재 상태 메시지를 반환하여 구체적인 이유를 알 수 있게 함
+        return sd_status_msg.c_str();
     }
     
     if (sd_file_list.length() > 0) {
