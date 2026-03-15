@@ -18,6 +18,8 @@ void wifi_mgr_init() {
     saved_ssid = preferences.getString("ssid", "");
     saved_password = preferences.getString("password", "");
     
+    WiFi.mode(WIFI_STA);
+    
     if (saved_ssid.length() > 0) {
         Serial.printf("Auto-connecting to: %s\n", saved_ssid.c_str());
         WiFi.begin(saved_ssid.c_str(), saved_password.c_str());
@@ -125,7 +127,8 @@ const char* wifi_mgr_get_ip() {
 const char* wifi_mgr_get_time() {
     static char time_buf[64];
     struct tm timeinfo;
-    if(!getLocalTime(&timeinfo)){
+    // getLocalTime with 0ms timeout to avoid blocking LVGL task when time is not synced
+    if(!getLocalTime(&timeinfo, 0)){
         return "Time not synced";
     }
     // format: 2024-03-20 14:30:05
